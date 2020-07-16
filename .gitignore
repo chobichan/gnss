@@ -1,0 +1,11 @@
+# git ignore file
+# designed by chobichan.
+
+# not need a.out
+# a.out
+
+# not need cppGraphic folder
+# cppGraphic/
+
+# not need logs folder
+# logs/
