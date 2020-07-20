@@ -100,7 +100,18 @@ int GNSS_BY_SOFT::line( char *rcv, int size )
   /* Sentences are output with a maximum delay of 75 ms from the PPS. */
   for( loop = 0; loop < LOOP_LIMIT; loop++ )
   {
-    if( SoftwareSerial::available() ) break;
+    if( SoftwareSerial::available() )
+    {
+      char c = SoftwareSerial::read();
+//      Serial.write( c );
+      if( c == '$' )
+      {
+        *rcv++ = c;
+        count++;
+        delay( 2UL );  /* 0.2ms * 10 */
+        break;
+      }
+    }
     delay( 2UL );  /* 0.2ms * 10 */
   }
   if( loop == LOOP_LIMIT ) return 0;
@@ -114,18 +125,14 @@ int GNSS_BY_SOFT::line( char *rcv, int size )
       *rcv = '\0';
       break;
     }
-    else if( c == '\r' )
-    {
-      *rcv = '\0';
-    }
+    else if( c == '\r' ) rcv = '\0';
+    else if( c == '$' || !isgraph( c ) ) return 0;
+    else if( !isalnum( c ) &&
+      c == ',' && c == '.' && c == '+' && c == '-' ) return 0;
     else
     {
       *rcv++ = c;
-      if( ++count >= (size - 1) )
-      {
-        *rcv = '\0';
-        break;
-      }
+      if( ++count >= (size - 1) ) return 0;
     }
     if( !SoftwareSerial::available() ) delay( 10UL );  /* 0.2ms * 10 */
     else yield();
@@ -133,6 +140,18 @@ int GNSS_BY_SOFT::line( char *rcv, int size )
   return count;
 }
 
+/* ----------------------------------------
+    output message to GPS serial.
+  ---------------------------------------- */
+int GNSS_BY_SOFT::print( String str )
+{
+  return SoftwareSerial::print( str );
+}
+
+int GNSS_BY_SOFT::println( String str )
+{
+  return SoftwareSerial::println( str );
+}
 
 
 /* ----------------------------------------

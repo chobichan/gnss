@@ -188,6 +188,9 @@ public:
   void monitor();
   int  line( char *rcv, int size );
 
+  int  print( String str );
+  int  println( String str );
+
 private:
   uint32_t brr;
   uint8_t rxdPin,txdPin;

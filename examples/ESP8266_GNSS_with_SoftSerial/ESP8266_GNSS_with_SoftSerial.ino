@@ -22,20 +22,14 @@
   Created 2020 by hamayan (hamayan.contact@gmail.com)
 ---------------------------------------- */
 #include  <gnss.h>
+#include  <mt3339.h>
 
 /* ----------------------------------------
     defines
 ---------------------------------------- */
-//#define  ASSOC      0  // output setup active low
-//#define  LED    ASSOC
-//#define  GPS_1PPS  13  // input setup active ???
 #define  GPS_TXD    2  // output setup
 #define  GPS_RXD   12  // input setup
 #define  FIVE_VOLT 15  // output setup active high
-//#define  RELAY     14  // output setup active high
-//#define  SDA33      4  // tri state
-//#define  SCL33      5  // tri state
-//#define  WAKE_UP   16  // output setup active low
 
 /* ----------------------------------------
     prototypes
@@ -45,27 +39,19 @@
     instances or global variables
 ---------------------------------------- */
 GNSS_BY_SOFT gps;
+MT3339 mt;
+uint32_t baseTim;
 
 /* ----------------------------------------
    GPIO initialize.
   ---------------------------------------- */
 void gpioInit()
 {
-//  pinMode( GPS_1PPS, INPUT_PULLUP );
-//  pinMode( ASSOC, OUTPUT );
-//  digitalWrite( ASSOC, HIGH );  /* active low */
-
   digitalWrite( GPS_TXD, HIGH );  /* active high */
   pinMode( GPS_TXD, OUTPUT );
   pinMode( GPS_RXD, INPUT );
   pinMode( FIVE_VOLT, OUTPUT );
   digitalWrite( FIVE_VOLT, HIGH );  /* active high */
-//  pinMode( RELAY, OUTPUT );
-//  digitalWrite( RELAY, HIGH );  /* active high */
-
-  /* LED blink start */
-//  assocTick.attach( 0.125, ledBlink );  /* attach blink led handler. */
-//  ledBlinkPattern = 0xAAAAAAAA;  // 0b1010 1010 1010 1010 1010 1010 1010 1010
 
   delay( 1000UL );
 }
@@ -81,9 +67,30 @@ void setup()
   Serial.begin( 115200UL );
   delay( 20UL );
   Serial.println( "\r\nESP8266 GNSS with Soft Serial." );
-  gps.begin( 9600UL, GPS_RXD, GPS_TXD );
+  gps.begin( 38400UL, GPS_RXD, GPS_TXD );  // original 9600UL
   delay( 20UL );
 //  gps.monitor();
+
+  /* PMTK_SET_NMEA_BAUDRATE */
+  gps.print( mt.pmtk_set_baudrate( 38400UL ) );
+  Serial.print( ">> " + mt.pmtk_set_baudrate( 38400UL ) );
+  /* PMTK_API_SET_FIX_CTL */
+  gps.print( mt.pmtk_api_set_fix_ctl( 1000UL ) );
+  Serial.print( ">> " + mt.pmtk_api_set_fix_ctl( 1000UL ) );
+  /* gll,rmc,vtg,gga,gsa,gsv,zda */
+  gps.print( mt.pmtk_api_set_nmea_output(0,1,0,0,0,0,0) );
+  Serial.print( ">> " + mt.pmtk_api_set_nmea_output(0,1,0,0,0,0,0) );
+  /* PMTK_API_SET_RTC_TIME */
+  gps.print( mt.pmtk_api_set_rtc_time( 1595222678UL ) );
+  Serial.print( ">> " + mt.pmtk_api_set_rtc_time( 1595222678UL ) );
+  /* PMTK_API_SET_SUPPORT_QZSS_NMEA */
+  gps.print( mt.pmtk_api_set_support_qzss_nmea( true ) );
+  Serial.print( ">> " + mt.pmtk_api_set_support_qzss_nmea( true ) );
+  /* PMTK_API_SET_STATIC_NAV_THD */
+  gps.print( mt.pmtk_api_set_static_nav_thd( 2.0F ) );
+  Serial.print( ">> " + mt.pmtk_api_set_static_nav_thd( 2.0F ) );
+
+  baseTim = millis();
 }
 
 /* ----------------------------------------
@@ -190,7 +197,43 @@ void loop()
     }
     else
     {
-      Serial.println( buffer );
+      int cmd;
+      uint8_t result;
+      if( (cmd = mt.pmtk_ack( (const char *)buffer, &result )) >= 0 )
+      {
+        Serial.println( "PMTK_ACK " + (String)cmd + " " + (String)mt.ackMessage( result ) );
+      }
+      else
+      {
+        Serial.println( buffer );
+      }
     }
+  }
+
+  if( (millis() - baseTim) >= 1000UL )
+  {
+    baseTim = millis();
+
+//    gps.print( mt.pmtk_test() );
+//    Serial.print( ">> " + mt.pmtk_test() );
+
+//    gps.print( mt.pmtk_sys_msg( 1 ) );
+//    Serial.print( ">> " + mt.pmtk_sys_msg( 1 ) );
+
+//    gps.print( mt.pmtk_hot_start() );
+//    Serial.print( ">> " + mt.pmtk_hot_start() );
+
+//    gps.print( mt.pmtk_warm_start() );
+//    Serial.print( ">> " + mt.pmtk_warm_start() );
+
+//    gps.print( mt.pmtk_set_baudrate( 9600UL ) );
+//    Serial.print( ">> " + mt.pmtk_set_baudrate( 9600UL ) );
+
+//    gps.print( mt.pmtk_api_set_fix_ctl( 100UL ) );
+//    Serial.print( ">> " + mt.pmtk_api_set_fix_ctl( 100UL ) );
+
+    /* gll,rmc,vtg,gga,gsa,gsv,zda */
+//    gps.print( mt.pmtk_api_set_nmea_output(0,1,0,0,0,0,0) );  // 0,0,0,1,0,0,0
+//    Serial.print( ">> " + mt.pmtk_api_set_nmea_output(0,1,0,0,0,0,0) );
   }
 }
