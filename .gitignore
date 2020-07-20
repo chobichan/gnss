@@ -1,0 +1,11 @@
+# git ignore file
+# designed by hamayan.
+
+# not need *.pdf
+ *.pdf
+
+# not need cppGraphic folder
+# cppGraphic/
+
+# not need logs folder
+# logs/
